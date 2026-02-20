@@ -71,3 +71,17 @@ export const BACKGROUND_COLORS: { id: BackgroundColor; label: string; hex: strin
   { id: 'blue', label: '青', hex: '#1A73E8' },
   { id: 'gray', label: 'グレー', hex: '#C0C0C0' },
 ];
+
+/** レタッチ設定 */
+export interface RetouchSettings {
+  brightness: number; // 0-200, default 100
+  contrast: number;   // 0-200, default 100
+  saturate: number;   // 0-200, default 100
+}
+
+/** レタッチ設定のデフォルト値 */
+export const DEFAULT_RETOUCH: RetouchSettings = {
+  brightness: 100,
+  contrast: 100,
+  saturate: 100,
+};

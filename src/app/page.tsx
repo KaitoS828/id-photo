@@ -4,10 +4,14 @@ import { useState, useCallback, DragEvent, ChangeEvent } from 'react';
 import {
   ConvertResponse,
   BackgroundColor,
+  RetouchSettings,
+  DEFAULT_RETOUCH,
   PHOTO_SIZE_PRESETS,
   BACKGROUND_COLORS,
 } from '@/types';
 import { generatePhotoSheet } from '@/utils/generateSheet';
+import { applyRetouchToImage, buildFilterString } from '@/utils/applyRetouch';
+import RetouchControls from '@/components/RetouchControls';
 
 export default function Home() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -20,6 +24,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isGeneratingSheet, setIsGeneratingSheet] = useState(false);
+  const [retouchSettings, setRetouchSettings] = useState<RetouchSettings>({ ...DEFAULT_RETOUCH });
 
   const selectedSize = PHOTO_SIZE_PRESETS.find((s) => s.id === sizePreset);
 
@@ -107,21 +112,29 @@ export default function Home() {
     }
   }, [uploadedImage, uploadedMimeType, backgroundColor, sizePreset]);
 
-  const handleDownloadImage = useCallback(() => {
+  const handleDownloadImage = useCallback(async () => {
     if (!convertedImage) return;
-    const link = document.createElement('a');
-    link.href = convertedImage;
-    link.download = `証明写真_${selectedSize?.label || 'photo'}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [convertedImage, selectedSize]);
+    try {
+      const finalImage = await applyRetouchToImage(convertedImage, retouchSettings);
+      const link = document.createElement('a');
+      link.href = finalImage;
+      link.download = `証明写真_${selectedSize?.label || 'photo'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('ダウンロードエラー:', err);
+      setError('画像のダウンロードに失敗しました');
+    }
+  }, [convertedImage, selectedSize, retouchSettings]);
 
   const handleDownloadSheet = useCallback(async () => {
     if (!convertedImage) return;
     setIsGeneratingSheet(true);
     try {
-      const sheetDataUrl = await generatePhotoSheet(convertedImage, sizePreset);
+      // レタッチを適用した画像で台紙を生成
+      const retouchedImage = await applyRetouchToImage(convertedImage, retouchSettings);
+      const sheetDataUrl = await generatePhotoSheet(retouchedImage, sizePreset);
       const link = document.createElement('a');
       link.href = sheetDataUrl;
       link.download = `証明写真_台紙_${selectedSize?.label || 'photo'}.png`;
@@ -134,7 +147,7 @@ export default function Home() {
     } finally {
       setIsGeneratingSheet(false);
     }
-  }, [convertedImage, sizePreset, selectedSize]);
+  }, [convertedImage, sizePreset, selectedSize, retouchSettings]);
 
   const handleReset = useCallback(() => {
     setUploadedImage(null);
@@ -142,6 +155,7 @@ export default function Home() {
     setFileName('');
     setConvertedImage(null);
     setError(null);
+    setRetouchSettings({ ...DEFAULT_RETOUCH });
   }, []);
 
   return (
@@ -329,8 +343,17 @@ export default function Home() {
                 </h2>
                 <div className="result-preview">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={convertedImage} alt="変換後の証明写真" className="result-image" />
+                  <img
+                    src={convertedImage}
+                    alt="変換後の証明写真"
+                    className="result-image"
+                    style={{ filter: buildFilterString(retouchSettings) }}
+                  />
                 </div>
+                <RetouchControls
+                  settings={retouchSettings}
+                  onChange={setRetouchSettings}
+                />
                 <div className="result-info">
                   <span className="result-badge">{selectedSize?.label}</span>
                   <span className="result-size">{selectedSize?.description}</span>
