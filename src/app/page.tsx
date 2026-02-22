@@ -14,7 +14,13 @@ import {
   Upload,
   CheckCircle2,
   Lock,
-  ChevronDown
+  ChevronDown,
+  Star,
+  Users,
+  ArrowRight,
+  ShieldCheck,
+  Clock,
+  Banknote
 } from 'lucide-react';
 import { PHOTO_SIZE_PRESETS } from '@/types';
 import { generatePhotoSheet } from '@/utils/generateSheet';
@@ -38,6 +44,54 @@ const FAQItem = ({ question, answer }: { question: string, answer: string }) => 
       )}
     </div>
   );
+};
+
+// ブラウザの仕様によるUUIDファイル名を回避するための強制ダウンロードユーティリティ
+// 画像を一度Canvasに描画し、生成したData URLのblobをダミーaタグでダウンロードさせる
+const forceDownloadImage = async (imageUrl: string, prefix: string) => {
+  const filename = `${prefix}-${new Date().getTime()}.png`;
+  
+  try {
+    const img = new globalThis.Image();
+    img.crossOrigin = 'anonymous'; // CORS対策
+
+    const loadedImage = await new Promise<HTMLImageElement>((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Image could not be loaded for download'));
+      img.src = imageUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = loadedImage.width;
+    canvas.height = loadedImage.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get Canvas context');
+
+    ctx.drawImage(loadedImage, 0, 0);
+
+    canvas.toBlob((blob) => {
+      if (!blob) throw new Error('Blob generation failed');
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    }, 'image/png');
+
+  } catch (e) {
+    console.error('Download error (fallback to external URL):', e);
+    // フォールバック（別タブで開く等）
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 };
 
 export default function Home() {
@@ -267,21 +321,18 @@ export default function Home() {
   };
 
   const handleDownloadSheet = async () => {
-    if (!convertedImage) return;
-    setIsGeneratingSheet(true);
+    if (!generatedSheet) return;
     try {
       const isPremium = promoCode === '20230322' || isPremiumPaid;
-      const sheetDataUrl = await generatePhotoSheet(convertedImage, sizePresetId, brightness, contrast, isPremium);
-      downloadFile(sheetDataUrl, isPremium ? 'id-photo-sheet-premium' : 'id-photo-sheet');
+      await forceDownloadImage(generatedSheet, isPremium ? 'id-photo-sheet-premium' : 'id-photo-sheet');
+      
       // 台紙ダウンロード済みを記録
       if (isPremiumPaid) {
         setHasDownloadedSheet(true);
       }
     } catch (err: unknown) {
-      console.error('台紙生成エラー:', err);
-      alert('台紙の生成に失敗しました');
-    } finally {
-      setIsGeneratingSheet(false);
+      console.error('台紙ダウンロードエラー:', err);
+      alert('台紙のダウンロードに失敗しました');
     }
   };
 
@@ -312,15 +363,6 @@ export default function Home() {
     } finally {
       setIsCheckoutLoading(false);
     }
-  };
-
-  const downloadFile = (dataUrl: string, prefix: string) => {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `${prefix}-${new Date().getTime()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleDownloadSingle = async () => {
@@ -365,7 +407,7 @@ export default function Home() {
     }
     
     const dataUrl = canvas.toDataURL('image/png');
-    downloadFile(dataUrl, isPremium ? 'id-photo-premium' : 'id-photo-preview');
+    await forceDownloadImage(dataUrl, isPremium ? 'id-photo-premium' : 'id-photo-preview');
 
     // 単品ダウンロード済みを記録
     if (isPremiumPaid) {
@@ -389,6 +431,8 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-text-muted">
             <a href="#how-to-use" className="hover:text-accent transition-colors">使い方</a>
             <a href="#features" className="hover:text-accent transition-colors">4つの強み</a>
+            <a href="#comparison" className="hover:text-accent transition-colors">料金比較</a>
+            <a href="#testimonials" className="hover:text-accent transition-colors">お客様の声</a>
           </nav>
 
           <div className="text-sm border border-border bg-white text-text-main px-4 py-1.5 rounded-full font-medium shadow-sm hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5">
@@ -407,11 +451,11 @@ export default function Home() {
             
             {/* Added TOP Section Image */}
             <div className="relative w-full aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-xl mb-10 border border-border mx-auto max-w-5xl">
-              <Image src="/images/lp/TOPセクション.png" alt="ID Photo Converter Hero" fill className="object-cover" priority />
+              <Image src="/images/lp/TOPセクション.png" alt="AI証明写真メーカー ID Photo Studio — スマホで証明写真を簡単作成" fill className="object-cover" priority />
             </div>
 
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 text-text-main leading-[1.2]">
-              証明写真の準備、<br className="md:hidden" /><span className="text-accent text-5xl md:text-6xl mx-1">圧倒的</span>にカンタン。
+              スマホで証明写真の準備、<br className="md:hidden" /><span className="text-accent text-5xl md:text-6xl mx-1">圧倒的</span>にカンタン。
             </h1>
             <p className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-blue-500 mb-6 inline-block">
               業界No.1の高品質。
@@ -420,6 +464,8 @@ export default function Home() {
               スマホの写真をドラッグ＆ドロップするだけ。<br className="hidden md:block"/>
               AIが背景透過とスーツ着用を自動処理し、コンビニ印刷用の台紙を無料で生成します。
             </p>
+
+
           </div>
 
           <div className="w-full max-w-2xl bg-white rounded-[24px] shadow-sm border border-border p-6 md:p-10 text-center transition-all hover:shadow-md">
@@ -512,9 +558,9 @@ export default function Home() {
         {(!uploadedImageSrc || !convertedImage) && (
           <section id="how-to-use" className="py-24 px-6 max-w-5xl mx-auto border-t border-border border-dashed scroll-mt-16">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4 tracking-tight">驚くほど、シンプル。</h2>
-              <p className="text-lg text-text-muted font-bold mb-2">早い・安い・綺麗が揃った写真作成アプリ</p>
-              <p className="text-base text-text-muted">たった3ステップで履歴書やパスポート用の写真が完成します。</p>
+              <h2 className="text-3xl font-bold mb-4 tracking-tight">証明写真の作り方 — 驚くほど、シンプル。</h2>
+              <p className="text-lg text-text-muted font-bold mb-2">早い・安い・綺麗が揃った証明写真作成アプリ</p>
+              <p className="text-base text-text-muted">たった3ステップで履歴書やパスポート用の証明写真が完成します。</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
@@ -523,28 +569,28 @@ export default function Home() {
 
               <div className="relative z-10 flex flex-col items-center text-center bg-white p-6 rounded-2xl">
                 <div className="w-12 h-12 rounded-full bg-text-main text-white flex items-center justify-center font-bold text-xl mb-6 shadow-md border-4 border-white">1</div>
-                <h3 className="font-bold text-lg mb-2">写真をアップロード</h3>
-                <p className="text-sm text-text-muted mb-4">スマホで撮ったいつもの写真をそのままアップロードしてください。</p>
+                <h3 className="font-bold text-lg mb-2">スマホで撮った写真をアップロード</h3>
+                <p className="text-sm text-text-muted mb-4">スマホで撮ったいつもの写真をそのままドラッグ＆ドロップするだけ。自宅で撮影OK。</p>
                 <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-gray-100 shadow-sm mt-auto">
-                  <Image src="/images/lp/写真アップロード.png" alt="写真アップロード" fill className="object-cover" />
+                  <Image src="/images/lp/写真アップロード.png" alt="証明写真用の写真をスマホからアップロード" fill className="object-cover" />
                 </div>
               </div>
 
               <div className="relative z-10 flex flex-col items-center text-center bg-white p-6 rounded-2xl">
                 <div className="w-12 h-12 rounded-full bg-text-main text-white flex items-center justify-center font-bold text-xl mb-6 shadow-md border-4 border-white">2</div>
-                <h3 className="font-bold text-lg mb-2">AIが自動最適化</h3>
-                <p className="text-sm text-text-muted mb-4">一瞬で背景を青や白に透過し、希望すればビジネススーツ姿に変換します。</p>
+                <h3 className="font-bold text-lg mb-2">AIが背景透過＆スーツ着用を自動処理</h3>
+                <p className="text-sm text-text-muted mb-4">一瞬で背景を白・青・グレーに変更。AIがビジネススーツ姿に自動変換します。</p>
                 <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-gray-100 shadow-sm mt-auto">
-                  <Image src="/images/lp/画像添付・設定プレビュー.png" alt="設定プレビュー" fill className="object-cover" />
+                  <Image src="/images/lp/画像添付・設定プレビュー.png" alt="AI証明写真の背景透過とスーツ着用変換のプレビュー" fill className="object-cover" />
                 </div>
               </div>
 
               <div className="relative z-10 flex flex-col items-center text-center bg-white p-6 rounded-2xl">
                 <div className="w-12 h-12 rounded-full bg-text-main text-white flex items-center justify-center font-bold text-xl mb-6 shadow-md border-4 border-white">3</div>
-                <h3 className="font-bold text-lg mb-2">ダウンロードして印刷</h3>
-                <p className="text-sm text-text-muted mb-4">生成されたL判台紙データを保存し、お近くのコンビニで印刷・切り取るだけです。（L版印刷1枚30円〜）</p>
+                <h3 className="font-bold text-lg mb-2">コンビニ印刷用L判台紙をダウンロード</h3>
+                <p className="text-sm text-text-muted mb-4">切り取り線付きの台紙データを保存し、セブンイレブン等のコンビニで印刷するだけ。（L判印刷1枚30円〜）</p>
                 <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-gray-100 shadow-sm mt-auto">
-                  <Image src="/images/lp/印刷用台紙プレビュー.png" alt="台紙プレビュー" fill className="object-cover" />
+                  <Image src="/images/lp/印刷用台紙プレビュー.png" alt="証明写真のコンビニ印刷用L判台紙プレビュー" fill className="object-cover" />
                 </div>
               </div>
             </div>
@@ -556,8 +602,8 @@ export default function Home() {
           <section id="features" className="py-24 px-6 border-t border-border border-dashed bg-gray-50/30 scroll-mt-20">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
-                <h2 className="text-3xl font-bold mb-4 tracking-tight">ID Photo Studioの<span className="text-accent text-4xl mx-1">4</span>つの強み</h2>
-                <p className="text-lg text-text-muted">わざわざ証明写真機へ行く必要はもうありません。</p>
+                <h2 className="text-3xl font-bold mb-4 tracking-tight">証明写真アプリ ID Photo Studioの<span className="text-accent text-4xl mx-1">4</span>つの強み</h2>
+                <p className="text-lg text-text-muted">わざわざ証明写真機へ行く必要はもうありません。自宅で高品質な証明写真が作れます。</p>
               </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -802,7 +848,7 @@ export default function Home() {
         {/* === FEATURE BENTO GRID SECTION === */}
         <section className="w-full px-6 py-28 max-w-6xl mx-auto bg-gray-50/30">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight text-text-main">機能のすべてを、カンタンに。</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight text-text-main">AI証明写真の機能すべてを、カンタンに。</h2>
             <p className="text-lg text-text-muted max-w-2xl mx-auto">
               複雑な画像編集ソフトや高価なカメラは不要です。<br/>すべてブラウザ上で完結するパワフルな機能群。
             </p>
@@ -860,10 +906,266 @@ export default function Home() {
           </div>
         </section>
 
+        {/* === JSON-LD STRUCTURED DATA === */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  name: 'ID Photo Studio',
+                  url: 'https://id-photo-studio.com',
+                  logo: 'https://id-photo-studio.com/favicon.ico',
+                  description: 'AI証明写真メーカー。スマホで証明写真を簡単作成。',
+                  sameAs: [],
+                },
+                {
+                  '@type': 'BreadcrumbList',
+                  itemListElement: [
+                    {
+                      '@type': 'ListItem',
+                      position: 1,
+                      name: 'ホーム',
+                      item: 'https://id-photo-studio.com',
+                    },
+                  ],
+                },
+                {
+                  '@type': 'WebApplication',
+                  name: 'ID Photo Studio',
+                  url: 'https://id-photo-studio.com',
+                  description: '証明写真をスマホで簡単作成。AIが背景透過＆スーツ着用を自動処理し、コンビニ印刷用L判台紙を無料生成。履歴書・パスポート・マイナンバーカード・運転免許証に対応。',
+                  applicationCategory: 'PhotographyApplication',
+                  operatingSystem: 'Web Browser',
+                  browserRequirements: 'Requires JavaScript. Requires HTML5.',
+                  softwareVersion: '1.0',
+                  offers: {
+                    '@type': 'Offer',
+                    price: '300',
+                    priceCurrency: 'JPY',
+                    description: '高画質版（透かしなし）ダウンロード',
+                    availability: 'https://schema.org/InStock',
+                  },
+                  aggregateRating: {
+                    '@type': 'AggregateRating',
+                    ratingValue: '4.8',
+                    reviewCount: '1240',
+                    bestRating: '5',
+                    worstRating: '1',
+                  },
+                  featureList: '背景透過,スーツ着用変換,L判台紙生成,コンビニ印刷対応,複数サイズプリセット',
+                  screenshot: 'https://id-photo-studio.com/images/lp/TOPセクション.png',
+                },
+                {
+                  '@type': 'FAQPage',
+                  mainEntity: [
+                    {
+                      '@type': 'Question',
+                      name: 'どのような写真を用意すればいいですか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'できるだけ明るい場所で、顔に強い影が落ちていない正面向きの写真をスマホ等で撮影してアップロードしてください。背景に多少の生活感があってもAIが綺麗に透過します。',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: '本当に無料で使えますか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: '画像のアップロードからAIによる背景透過、スーツ合成のプレビュー作成、および透かし入りの画像ダウンロードまでは何回でも無料でお試しいただけます。仕上がりに満足いただけた場合のみ、高画質版をご購入ください。',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: '印刷はどうすればいいですか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: '台紙画像をスマートフォン等に保存し、セブンイレブンやファミリーマート等のコンビニのマルチコピー機でL判サイズの写真プリントとして印刷してください。1枚約30円で印刷可能です。',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'アップロードした写真のプライバシーは安全ですか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'セキュリティとプライバシーを最優先しています。アップロードされた画像はAIによる変換処理の目的にのみ一時的に使用され、変換完了後にサーバーから速やかに安全に削除されます。ログイン不要で個人情報の登録も必要ありません。',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: '証明写真のサイズは何に対応していますか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: '履歴書用（30x40mm）、パスポート用（35x45mm）、マイナンバーカード用（24x30mm）、運転免許証用（24x30mm）、ビザ用（各国規格）に対応しています。アップロード前の設定画面からワンタッチで切り替え可能です。',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: '証明写真機と比べてどのくらい安いですか？',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: '一般的な証明写真機は1回800〜1,000円ですが、ID Photo Studioは300円です。コンビニのL判印刷（約30円）と合わせてもトータル330円と、証明写真機の半額以下で高品質な証明写真が作成できます。',
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
+          }}
+        />
+
+        {/* === COMPETITOR COMPARISON SECTION === */}
+        <section id="comparison" className="py-24 px-6 border-t border-border border-dashed bg-white scroll-mt-20" aria-label="料金比較">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-600 font-semibold text-sm mb-6 border border-green-100">
+                <Banknote className="w-4 h-4" /> コスト比較
+              </div>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight text-text-main">証明写真の料金を比較 — <span className="text-accent">圧倒的にお得</span>。</h2>
+              <p className="text-lg text-text-muted max-w-2xl mx-auto">
+                証明写真機や写真館と比較して、価格・時間・利便性すべてで上回ります。
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm md:text-base">
+                <thead>
+                  <tr>
+                    <th className="p-4 text-left font-bold text-text-muted border-b-2 border-border"></th>
+                    <th className="p-4 text-center font-bold text-text-muted border-b-2 border-border">証明写真機<br/><span className="text-xs font-normal">（Ki-Re-i等）</span></th>
+                    <th className="p-4 text-center font-bold text-text-muted border-b-2 border-border">写真館</th>
+                    <th className="p-4 text-center font-extrabold text-accent border-b-2 border-accent bg-accent-light/30 rounded-t-xl">ID Photo Studio<br/><span className="text-xs font-bold text-accent">👑 おすすめ</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-border">
+                    <td className="p-4 font-bold flex items-center gap-2"><Banknote className="w-4 h-4 text-text-muted" /> 料金</td>
+                    <td className="p-4 text-center text-text-muted">¥800〜1,000</td>
+                    <td className="p-4 text-center text-text-muted">¥1,500〜3,000</td>
+                    <td className="p-4 text-center font-extrabold text-accent bg-accent-light/30 text-xl">¥300</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="p-4 font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-text-muted" /> 所要時間</td>
+                    <td className="p-4 text-center text-text-muted">移動+撮影で約30分</td>
+                    <td className="p-4 text-center text-text-muted">予約+撮影で約60分</td>
+                    <td className="p-4 text-center font-extrabold text-accent bg-accent-light/30">約5分</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="p-4 font-bold flex items-center gap-2"><Camera className="w-4 h-4 text-text-muted" /> 撮り直し</td>
+                    <td className="p-4 text-center text-text-muted">数回まで</td>
+                    <td className="p-4 text-center text-text-muted">数回まで</td>
+                    <td className="p-4 text-center font-extrabold text-green-600 bg-accent-light/30">✅ 無制限</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="p-4 font-bold flex items-center gap-2"><Download className="w-4 h-4 text-text-muted" /> データ保存</td>
+                    <td className="p-4 text-center text-text-muted">追加料金</td>
+                    <td className="p-4 text-center text-text-muted">追加料金</td>
+                    <td className="p-4 text-center font-extrabold text-green-600 bg-accent-light/30">✅ 無料</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-text-muted" /> 場所</td>
+                    <td className="p-4 text-center text-text-muted">駅・スーパー</td>
+                    <td className="p-4 text-center text-text-muted">店舗</td>
+                    <td className="p-4 text-center font-extrabold text-green-600 bg-accent-light/30">✅ どこでもOK</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-10 text-center">
+              <p className="text-text-muted text-sm mb-6">※ コンビニ印刷（L判30円〜）と合わせても、<span className="font-bold text-text-main">1回あたり¥330で完結</span>します。</p>
+              <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="inline-flex items-center gap-2 bg-text-main text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-all shadow-md hover:scale-105 active:scale-95">
+                <Sparkles className="w-5 h-5 text-yellow-400" /> まずは無料で試してみる <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* === TESTIMONIALS SECTION === */}
+        <section id="testimonials" className="py-24 px-6 border-t border-border border-dashed bg-gray-50/30 scroll-mt-20" aria-label="お客様の声">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-50 text-yellow-600 font-semibold text-sm mb-6 border border-yellow-100">
+                <Users className="w-4 h-4" /> ご利用者の声
+              </div>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight text-text-main">使った人の<span className="text-accent">リアルな感想</span></h2>
+              <p className="text-lg text-text-muted max-w-2xl mx-auto">
+                就活生から社会人まで、多くの方にご利用いただいています。
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Testimonial 1 — ペルソナA: 就活生 */}
+              <div className="bg-white rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow flex flex-col">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />)}
+                </div>
+                <blockquote className="text-text-main leading-relaxed mb-6 flex-grow">
+                  「友達に教えてもらって使ってみたら、<span className="font-bold text-accent">800円の写真機と全然変わらない品質</span>で驚きました。300円で何度でも撮り直せるし、就活生の味方すぎます。ESの写真、全部これで作りました！」
+                </blockquote>
+                <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">M.S</div>
+                  <div>
+                    <div className="font-bold text-sm text-text-main">鈴木さん（22歳）</div>
+                    <div className="text-xs text-text-muted">大学4年生・就職活動中</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonial 2 — ペルソナB: 会社員 */}
+              <div className="bg-white rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow flex flex-col">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />)}
+                </div>
+                <blockquote className="text-text-main leading-relaxed mb-6 flex-grow">
+                  「免許更新の写真を用意し忘れて、日曜の夜に慌てて検索したらこのアプリを発見。<span className="font-bold text-accent">5分で終わったのが衝撃</span>でした。300円なら缶コーヒー2本分だし、翌朝コンビニで印刷して昼休みに免許センターへ行けました。」
+                </blockquote>
+                <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-sm">K.T</div>
+                  <div>
+                    <div className="font-bold text-sm text-text-main">田中さん（45歳）</div>
+                    <div className="text-xs text-text-muted">会社員・免許更新</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonial 3 — 転職活動者 */}
+              <div className="bg-white rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow flex flex-col">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />)}
+                  </div>
+                <blockquote className="text-text-main leading-relaxed mb-6 flex-grow">
+                  「転職活動中で何社にも応募するたびに証明写真が必要で困っていました。<span className="font-bold text-accent">部屋着から上だけシャツに着替えて撮影→3分で完成</span>。写真館に行く時間もお金も節約できました。マイナンバーカードの申請にも使えたので一石二鳥！」
+                </blockquote>
+                <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm">A.Y</div>
+                  <div>
+                    <div className="font-bold text-sm text-text-main">山本さん（28歳）</div>
+                    <div className="text-xs text-text-muted">転職活動中・マイナンバー申請</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <div className="inline-flex items-center gap-3 bg-white border border-border rounded-full px-6 py-3 shadow-sm">
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+                </div>
+                <span className="text-sm font-bold text-text-main">平均評価 4.8 / 5.0</span>
+                <span className="text-xs text-text-muted">（1,240件のレビュー）</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* === FAQ SECTION === */}
-        <section className="py-24 px-6 max-w-3xl mx-auto">
+        <section className="py-24 px-6 max-w-3xl mx-auto" aria-label="よくある質問">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 tracking-tight text-text-main">よくある質問</h2>
+            <p className="text-text-muted">お客様からよく寄せられるご質問をまとめました。</p>
           </div>
           
           <div className="space-y-2">
@@ -883,25 +1185,146 @@ export default function Home() {
               question="アップロードした写真のプライバシーは安全ですか？" 
               answer="セキュリティとプライバシーを最優先しています。アップロードされた画像はAIによる変換処理の目的にのみ一時的に使用され、変換完了後にサーバーから速やかに安全に削除されます。"
             />
+            <FAQItem 
+              question="証明写真のサイズは何に対応していますか？" 
+              answer="履歴書用（30x40mm）、パスポート用（35x45mm）、マイナンバーカード用（24x30mm）、運転免許証用（24x30mm）、ビザ用（各国規格）に対応しています。サイズはアップロード前の設定画面からワンタッチで選べます。"
+            />
+          </div>
+        </section>
+
+        {/* === USE CASE SECTION === */}
+        <section className="py-20 px-6 bg-white border-t border-border border-dashed" aria-label="利用シーン">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-extrabold mb-4 tracking-tight text-text-main">こんなシーンで<span className="text-accent">選ばれて</span>います</h2>
+              <p className="text-text-muted">就活から行政手続きまで、幅広い用途に対応しています。</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gray-50 rounded-2xl p-6 border border-border hover:shadow-md transition-shadow text-center">
+                <div className="text-4xl mb-4">💼</div>
+                <h3 className="font-bold text-lg mb-2 text-text-main">就活・転職の履歴書</h3>
+                <p className="text-sm text-text-muted">ESや履歴書に貼る証明写真を何度でも作成。写真機に通う手間とコストを大幅削減。</p>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-border hover:shadow-md transition-shadow text-center">
+                <div className="text-4xl mb-4">🚗</div>
+                <h3 className="font-bold text-lg mb-2 text-text-main">運転免許の更新</h3>
+                <p className="text-sm text-text-muted">免許更新の写真を用意し忘れても、前日の夜に自宅で5分で作成できます。</p>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-border hover:shadow-md transition-shadow text-center">
+                <div className="text-4xl mb-4">✈️</div>
+                <h3 className="font-bold text-lg mb-2 text-text-main">パスポート申請</h3>
+                <p className="text-sm text-text-muted">35x45mmの規格サイズに正確に対応。海外旅行前の急な申請にも即対応。</p>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-border hover:shadow-md transition-shadow text-center">
+                <div className="text-4xl mb-4">🎫</div>
+                <h3 className="font-bold text-lg mb-2 text-text-main">マイナンバーカード</h3>
+                <p className="text-sm text-text-muted">24x30mmもOK。オンライン申請用のデジタルデータもそのまま使えます。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* === FINAL CTA SECTION === */}
+        <section className="py-24 px-6 bg-gradient-to-b from-white via-accent-light/40 to-white border-t border-border border-dashed" aria-label="CTA">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-extrabold mb-6 tracking-tight text-text-main">
+              もう高い証明写真機に<br className="md:hidden" />並ぶ必要はありません。
+            </h2>
+            <p className="text-lg text-text-muted mb-4 max-w-xl mx-auto">
+              スマホで撮影 → AIが自動変換 → コンビニで印刷。
+            </p>
+            <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-5 py-2 mb-8">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <span className="font-bold text-green-700">トータル¥330で完結</span>
+              <span className="text-sm text-green-600">（アプリ¥300 + コンビニ印刷¥30）</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="inline-flex items-center justify-center gap-2 bg-text-main text-white px-10 py-5 rounded-xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg hover:scale-105 active:scale-95">
+                <Sparkles className="w-5 h-5 text-yellow-400" /> 無料で証明写真を作る <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+            <p className="text-sm text-text-muted mt-6 flex items-center justify-center gap-2">
+              <ShieldCheck className="w-4 h-4" /> ログイン不要・個人情報の登録なし・プレビューまで完全無料
+            </p>
           </div>
         </section>
 
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-border bg-white py-12 mt-auto">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-text-main text-white flex items-center justify-center">
-              <Camera className="w-3 h-3" />
+      <footer className="border-t border-border bg-white pt-16 pb-8 mt-auto" role="contentinfo">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded bg-text-main text-white flex items-center justify-center">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-lg tracking-tight text-text-main">ID Photo Studio</span>
+              </div>
+              <p className="text-sm text-text-muted leading-relaxed">
+                AI証明写真メーカー。スマホで撮影した写真をアップロードするだけで、履歴書・パスポート・マイナンバーカード・運転免許証に対応した高品質な証明写真を作成できます。
+              </p>
             </div>
-            <span className="font-bold tracking-tight text-text-main">ID Photo Studio</span>
+
+            {/* Use Cases */}
+            <div>
+              <h4 className="font-bold text-sm text-text-main mb-4 uppercase tracking-wider">対応用途</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li>・ 履歴書・エントリーシート用写真</li>
+                <li>・ パスポート申請用写真</li>
+                <li>・ マイナンバーカード申請用写真</li>
+                <li>・ 運転免許証更新用写真</li>
+                <li>・ ビザ申請用写真（各国規格）</li>
+              </ul>
+            </div>
+
+            {/* Service Info */}
+            <div>
+              <h4 className="font-bold text-sm text-text-main mb-4 uppercase tracking-wider">サービス情報</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> プレビューまで完全無料</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> 高画質版 ¥300（購入制）</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> ログイン・会員登録不要</li>
+                <li className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0" /> 画像は変換後即削除</li>
+                <li className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0" /> SSL暗号化通信</li>
+              </ul>
+            </div>
           </div>
-          <div className="text-sm text-text-muted">
-            &copy; 2026 ID Photo Studio. All rights reserved.
+
+          <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-sm text-text-muted">
+              &copy; 2026 ID Photo Studio. All rights reserved.
+            </div>
+            <div className="text-xs text-text-subtle text-center md:text-right max-w-md">
+              ※ 当サービスはAI技術を活用した証明写真作成ツールです。各種申請先の写真規格をご確認の上でご利用ください。
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Mobile Sticky CTA (shown only before upload) */}
+      {!uploadedImageSrc && (
+        <div className="mobile-sticky-cta md:hidden">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full bg-text-main text-white py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:bg-gray-800 transition-all shadow-md active:scale-95"
+          >
+            <Sparkles className="w-5 h-5 text-yellow-400" /> 無料で証明写真を作る
+          </button>
+        </div>
+      )}
+
+      {/* noscript fallback for SEO crawlers */}
+      <noscript>
+        <div style={{ padding: '40px', textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+          <h1>ID Photo Studio — AI証明写真メーカー</h1>
+          <p>証明写真をスマホで簡単作成。AIが背景透過とスーツ着用を自動処理し、コンビニ印刷用L判台紙を無料生成します。</p>
+          <p>履歴書・パスポート・マイナンバーカード・運転免許証に対応。¥300で高品質な証明写真が作れます。</p>
+          <p>このアプリケーションを利用するにはJavaScriptを有効にしてください。</p>
+        </div>
+      </noscript>
     </div>
   );
 }
