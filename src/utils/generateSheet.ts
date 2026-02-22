@@ -63,7 +63,10 @@ function pxToCm(px: number): string {
  */
 export async function generatePhotoSheet(
   imageDataUrl: string,
-  sizePresetId: string
+  sizePresetId: string,
+  brightness: number = 100,
+  contrast: number = 100,
+  isPremium: boolean = false
 ): Promise<string> {
   const preset = PHOTO_SIZE_PRESETS.find((s) => s.id === sizePresetId);
   if (!preset) {
@@ -115,8 +118,10 @@ export async function generatePhotoSheet(
       const x = offsetX + col * (photoW + SHEET_CONFIG.gap);
       const y = offsetY + row * (photoH + SHEET_CONFIG.gap);
 
-      // 写真を描画
+      // 画像に色調補正を適用して描画
+      ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
       ctx.drawImage(img, x, y, photoW, photoH);
+      ctx.filter = 'none'; // reset
 
       // 切り取りガイド線（各写真の周囲）
       drawCutGuide(ctx, x, y, photoW, photoH);
@@ -149,6 +154,24 @@ export async function generatePhotoSheet(
     canvas.width / 2,
     canvas.height - SHEET_CONFIG.padding + 30
   );
+
+  // 無料版（非プレミアム）の場合は全面に透かしを描画
+  if (!isPremium) {
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((-35 * Math.PI) / 180);
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.25)'; // text-red-500
+    ctx.font = '900 120px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // 画面全体をカバーするように繰り返し描画
+    ctx.fillText('PREVIEW SAMPLE', 0, -450);
+    ctx.fillText('PREVIEW SAMPLE', 0, -150);
+    ctx.fillText('PREVIEW SAMPLE', 0, 150);
+    ctx.fillText('PREVIEW SAMPLE', 0, 450);
+    ctx.restore();
+  }
 
   return canvas.toDataURL('image/png');
 }
