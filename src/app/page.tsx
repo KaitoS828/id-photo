@@ -262,10 +262,48 @@ export default function Home() {
     e.preventDefault();
   }
 
-  const fileToBase64 = (f: File): Promise<string> => {
+  // Vercel Payload制限(4MB)対策のため、画像をリサイズ・圧縮してBase64を返す
+  const resizeAndCompressImage = (f: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = (e) => {
+        const img = new globalThis.Image();
+        img.onload = () => {
+          // 最大サイズを1500pxに制限（証明写真としては十分な解像度）
+          const MAX_SIZE = 1500;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context is null'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // JPEGで品質0.85（約15%圧縮）にして送信サイズを数百KBレベルに抑える
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
       reader.onerror = reject;
       reader.readAsDataURL(f);
     });
@@ -280,7 +318,8 @@ export default function Home() {
     setGeneratedSheet(null);
 
     try {
-      const base64Data = await fileToBase64(file);
+      // 圧縮＆リサイズした画像をBase64で取得
+      const base64Data = await resizeAndCompressImage(file);
       const [mimeType, base64Content] = base64Data.split(';base64,');
 
       const response = await fetch('/api/convert', {
