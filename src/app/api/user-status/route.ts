@@ -35,3 +35,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ isPremium: false }, { status: 500 });
   }
 }
+

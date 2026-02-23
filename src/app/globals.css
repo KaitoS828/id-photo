@@ -14,11 +14,58 @@
   --color-accent: #2563EB;
   --color-accent-hover: #1D4ED8;
   --color-accent-light: #EFF6FF;
+
+  /* Font families */
+  --font-sans: var(--font-noto-sans-jp), var(--font-inter), 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background-color: var(--color-page);
   color: var(--color-text-main);
+  font-feature-settings: 'palt';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+::selection {
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
+}
 
+/* Shimmer animation for CTA buttons */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Mobile sticky CTA bar */
+@media (max-width: 768px) {
+  .mobile-sticky-cta {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+  }
+}
+
+/* Counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out forwards;
+}

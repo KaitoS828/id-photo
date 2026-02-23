@@ -1,0 +1,18 @@
+{
+  "name": "ID Photo Studio",
+  "short_name": "ID Photo",
+  "description": "証明写真をスマホで簡単作成。AIが背景透過＆スーツ着用を自動処理し、コンビニ印刷用L判台紙を無料生成。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#2563EB",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["photo", "utilities", "productivity"]
+}
