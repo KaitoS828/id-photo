@@ -97,7 +97,7 @@ export const metadata: Metadata = {
     'google': 'notranslate',
   },
   verification: {
-    google: '58jKRGv7e9ttvsW0jJ8UW2gE-2T0uH8tYFLgVNy7VY4',
+    google: 'Monk2CVZWkbdxFJbWDeI2s36yx19KML6LtBNj4rtoRc',
   },
 };
 
