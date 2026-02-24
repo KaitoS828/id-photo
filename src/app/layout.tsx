@@ -106,6 +106,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ID Photo Studio",
+    "url": SITE_URL,
+    "description": "スマホの写真をアップロードするだけ。AIが背景透過＆スーツ着用を自動処理。履歴書・パスポート・マイナンバーカード対応。撮り直し無制限、5分で完成。",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "All",
+    "offers": {
+      "@type": "Offer",
+      "price": "300",
+      "priceCurrency": "JPY"
+    }
+  };
+
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
@@ -115,6 +130,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Apple Touch Icon */}
         <link rel="apple-touch-icon" href="/favicon.ico" />
+        <script 
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} 
+        />
       </head>
       <body className={`${inter.variable} ${notoSansJP.variable}`} suppressHydrationWarning>
         {children}

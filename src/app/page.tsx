@@ -482,7 +482,7 @@ export default function Home() {
 
       <main className="flex-grow w-full">
         {/* === HERO & UPLOAD SECTION === */}
-        <section className="w-full px-6 py-20 pb-16 flex flex-col items-center bg-gray-50/50">
+        <section className="w-full px-6 py-20 pb-16 flex flex-col items-center bg-gray-50/50" aria-label="メインと画像アップロード">
           <div className="max-w-4xl text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-semibold text-sm mb-6 border border-blue-100">
               <Sparkles className="w-4 h-4" /> AI駆動の証明写真メーカー
@@ -595,7 +595,7 @@ export default function Home() {
 
         {/* === HOW TO USE SECTION === */}
         {(!uploadedImageSrc || !convertedImage) && (
-          <section id="how-to-use" className="py-24 px-6 max-w-5xl mx-auto border-t border-border border-dashed scroll-mt-16">
+          <section id="how-to-use" className="py-24 px-6 max-w-5xl mx-auto border-t border-border border-dashed scroll-mt-16" aria-label="証明写真の作り方">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4 tracking-tight">証明写真の作り方 — 驚くほど、シンプル。</h2>
               <p className="text-lg text-text-muted font-bold mb-2">早い・安い・綺麗が揃った証明写真作成アプリ</p>
@@ -638,7 +638,7 @@ export default function Home() {
 
         {/* === WHY CHOOSE US (4つの強み) === */}
         {(!uploadedImageSrc || !convertedImage) && (
-          <section id="features" className="py-24 px-6 border-t border-border border-dashed bg-gray-50/30 scroll-mt-20">
+          <section id="features" className="py-24 px-6 border-t border-border border-dashed bg-gray-50/30 scroll-mt-20" aria-label="4つの強み">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-3xl font-bold mb-4 tracking-tight">証明写真アプリ ID Photo Studioの<span className="text-accent text-4xl mx-1">4</span>つの強み</h2>
@@ -692,7 +692,7 @@ export default function Home() {
 
         {/* === DYNAMIC EDITOR & RESULT AREA === */}
         {(uploadedImageSrc && convertedImage) && (
-          <section id="editor" className="w-full px-6 py-16 bg-white border-y border-border scroll-mt-20">
+          <section id="editor" className="w-full px-6 py-16 bg-white border-y border-border scroll-mt-20" aria-label="証明写真エディタとダウンロード">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-12">
                 <h2 className="text-3xl font-extrabold flex items-center justify-center gap-3">
@@ -885,7 +885,7 @@ export default function Home() {
         )}
 
         {/* === FEATURE BENTO GRID SECTION === */}
-        <section className="w-full px-6 py-28 max-w-6xl mx-auto bg-gray-50/30">
+        <section className="w-full px-6 py-28 max-w-6xl mx-auto bg-gray-50/30" aria-label="機能一覧">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight text-text-main">AI証明写真の機能すべてを、カンタンに。</h2>
             <p className="text-lg text-text-muted max-w-2xl mx-auto">
