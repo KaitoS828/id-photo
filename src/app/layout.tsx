@@ -15,7 +15,7 @@ const notoSansJP = Noto_Sans_JP({
   weight: ['400', '500', '700', '800', '900'],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://id-photo-studio.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.id-photomake.com';
 
 export const viewport: Viewport = {
   width: 'device-width',
