@@ -1,0 +1,32 @@
+name: Supabase Keepalive
+
+# 無料プランの自動一時停止（無操作が続くと停止）を防ぐため、
+# 毎日 実クエリを1回投げてアクティビティを発生させる。
+on:
+  schedule:
+    - cron: "17 2 * * *" # 毎日 02:17 UTC（=11:17 JST）
+  workflow_dispatch: {} # 手動実行も可
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase to keep project active
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # runner 側の一時的な DNS 障害で ping が欠測しないようリトライする
+          code=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
+            --retry 5 --retry-all-errors --retry-delay 15 \
+            --connect-timeout 15 --max-time 90 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/payments?select=*&limit=1")
+          echo "HTTP ${code}"
+          head -c 300 /tmp/resp.txt; echo
+          if [ "${code}" != "200" ]; then
+            echo "::error::Supabase returned HTTP ${code} (expected 200). Project may be paused or misconfigured."
+            exit 1
+          fi
+          echo "OK: project is active."
